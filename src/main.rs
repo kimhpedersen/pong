@@ -7,16 +7,33 @@ use tetra::{Context, ContextBuilder, State};
 struct Entity {
     texture: Texture,
     position: Vec2<f32>,
-    velocity: Vec2<f32>,
+}
+
+struct Player {
+    paddle: Entity,
     score: i32,
+}
+
+struct Ball {
+    puck: Entity,
+    velocity: Vec2<f32>,
+}
+
+impl Player {
+    fn new(texture: Texture, position: Vec2<f32>) -> Player {
+        Player { paddle: Entity::new(texture, position), score: 0 as i32}
+    }
+}
+
+impl Ball {
+    fn new(texture: Texture, position: Vec2<f32>, velovity: Vec2<f32>) -> Ball {
+        Ball { puck: Entity::new(texture, position), velocity: velovity}
+    }
 }
 
 impl Entity {
     fn new(texture: Texture, position: Vec2<f32>) -> Entity {
-        Entity { texture, position, velocity: Vec2::zero(), score : 0 as i32}
-    }
-    fn with_velocity(texture: Texture, position: Vec2<f32>, velocity: Vec2<f32>) -> Entity {
-        Entity { texture, position, velocity, score : 0 as i32}
+        Entity { texture, position}
     }
 
     fn width(&self) -> f32 {
@@ -44,9 +61,9 @@ impl Entity {
 }
 
 struct GameState {
-    player1: Entity,
-    player2: Entity,
-    ball: Entity,
+    player1: Player,
+    player2: Player,
+    ball: Ball,
     game_over: bool,
     p1score_text: Text,
     p2score_text: Text,
@@ -75,9 +92,9 @@ impl GameState {
         let font = Font::vector(ctx, "./resources/DejaVuSansMono.ttf", 24.0)?;
 
         Ok(GameState {
-            player1: Entity::new(player1_texture, player1_position),
-            player2: Entity::new(player2_texture, player2_position),
-            ball: Entity::with_velocity(ball_texture, ball_position, ball_velocity),
+            player1: Player::new(player1_texture, player1_position),
+            player2: Player::new(player2_texture, player2_position),
+            ball: Ball::new(ball_texture, ball_position, ball_velocity),
             game_over: false,
             p1score_text: Text::new(format!("Blue: {}", 0), font.clone()),
             p2score_text: Text::new(format!("Red: {}", 0), font),
@@ -86,61 +103,61 @@ impl GameState {
 
     fn reset_game(&mut self) {
         self.game_over = false;
-        self.ball.position = Vec2::new(
-            WINDOW_WIDTH / 2.0 - self.ball.width() / 2.0,
-            WINDOW_HEIGHT / 2.0 - self.ball.height() / 2.0,
+        self.ball.puck.position = Vec2::new(
+            WINDOW_WIDTH / 2.0 - self.ball.puck.width() / 2.0,
+            WINDOW_HEIGHT / 2.0 - self.ball.puck.height() / 2.0,
         );
-        self.player1.position = Vec2::new(
+        self.player1.paddle.position = Vec2::new(
             16.0,
-            (WINDOW_HEIGHT - self.player1.height()) / 2.0,
+            (WINDOW_HEIGHT - self.player1.paddle.height()) / 2.0,
         );
-        self.player2.position = Vec2::new(
-            WINDOW_WIDTH - self.player2.width() - 16.0,
-            (WINDOW_HEIGHT - self.player2.height()) / 2.0,
+        self.player2.paddle.position = Vec2::new(
+            WINDOW_WIDTH - self.player2.paddle.width() - 16.0,
+            (WINDOW_HEIGHT - self.player2.paddle.height()) / 2.0,
         );
         self.ball.velocity = Vec2::new(BALL_SPEED, 0.0);
     }
 
     fn update_positions(&mut self, ctx: &mut Context) {
         if input::is_key_down(ctx, Key::W) {
-            self.player1.position.y -= PADDLE_SPEED;
+            self.player1.paddle.position.y -= PADDLE_SPEED;
         }
         if input::is_key_down(ctx, Key::S) {
-            self.player1.position.y += PADDLE_SPEED;
+            self.player1.paddle.position.y += PADDLE_SPEED;
         }
         if input::is_key_down(ctx, Key::Up) {
-            self.player2.position.y -= PADDLE_SPEED;
+            self.player2.paddle.position.y -= PADDLE_SPEED;
         }
         if input::is_key_down(ctx, Key::Down) {
-            self.player2.position.y += PADDLE_SPEED;
+            self.player2.paddle.position.y += PADDLE_SPEED;
         }
-        if self.player1.position.y < 0.0 {
-            self.player1.position.y = 0.0;
+        if self.player1.paddle.position.y < 0.0 {
+            self.player1.paddle.position.y = 0.0;
         }
-        if self.player1.position.y + self.player1.height() > WINDOW_HEIGHT {
-            self.player1.position.y = WINDOW_HEIGHT - self.player1.height();
+        if self.player1.paddle.position.y + self.player1.paddle.height() > WINDOW_HEIGHT {
+            self.player1.paddle.position.y = WINDOW_HEIGHT - self.player1.paddle.height();
         }
-        if self.player2.position.y < 0.0 {
-            self.player2.position.y = 0.0;
+        if self.player2.paddle.position.y < 0.0 {
+            self.player2.paddle.position.y = 0.0;
         }
-        if self.player2.position.y + self.player2.height() > WINDOW_HEIGHT {
-            self.player2.position.y = WINDOW_HEIGHT - self.player2.height();
+        if self.player2.paddle.position.y + self.player2.paddle.height() > WINDOW_HEIGHT {
+            self.player2.paddle.position.y = WINDOW_HEIGHT - self.player2.paddle.height();
         }
-        self.ball.position += self.ball.velocity;
-        if self.ball.position.y <= 0.0 || self.ball.position.y + self.ball.height() >= WINDOW_HEIGHT {
+        self.ball.puck.position += self.ball.velocity;
+        if self.ball.puck.position.y <= 0.0 || self.ball.puck.position.y + self.ball.puck.height() >= WINDOW_HEIGHT {
             self.ball.velocity.y = -self.ball.velocity.y;
         }
     }
 
     fn check_paddle_hit(&mut self) {
-        let player1_bounds = self.player1.bounds();
-        let player2_bounds = self.player2.bounds();
-        let ball_bounds = self.ball.bounds();
+        let player1_bounds = self.player1.paddle.bounds();
+        let player2_bounds = self.player2.paddle.bounds();
+        let ball_bounds = self.ball.puck.bounds();
 
         let paddle_hit = if ball_bounds.intersects(&player1_bounds) {
-            Some(&self.player1)
+            Some(&self.player1.paddle)
         } else if ball_bounds.intersects(&player2_bounds) {
-            Some(&self.player2)
+            Some(&self.player2.paddle)
         } else {
             None
         };
@@ -152,7 +169,7 @@ impl GameState {
 
             // Calculate the offset between the paddle and the ball, as a number between
             // -1.0 and 1.0.
-            let offset = (paddle.centre().y - self.ball.centre().y) / paddle.height();
+            let offset = (paddle.centre().y - self.ball.puck.centre().y) / paddle.height();
 
             // Apply the spin to the ball.
             self.ball.velocity.y += PADDLE_SPIN * -offset;
@@ -160,13 +177,13 @@ impl GameState {
     }
 
     fn check_game_over(&mut self) {
-        if self.ball.position.x < 0.0 {
+        if self.ball.puck.position.x < 0.0 {
             self.game_over = true;
             self.player2.score += 1;
             self.p2score_text.set_content(format!("Red: {}", self.player2.score));
         }
 
-        if self.ball.position.x > WINDOW_WIDTH {
+        if self.ball.puck.position.x > WINDOW_WIDTH {
             self.game_over = true;
             self.player1.score += 1;
             self.p1score_text.set_content(format!("Blue: {}", self.player1.score));
@@ -180,9 +197,9 @@ impl State for GameState {
         self.p1score_text.draw(ctx, Vec2::new(10.0, 10.0));
         self.p2score_text.draw(ctx, Vec2::new(WINDOW_WIDTH - 100 as f32, 10.0));
         if !self.game_over {
-            self.player1.texture.draw(ctx, self.player1.position);
-            self.player2.texture.draw(ctx, self.player2.position);
-            self.ball.texture.draw(ctx, self.ball.position);
+            self.player1.paddle.texture.draw(ctx, self.player1.paddle.position);
+            self.player2.paddle.texture.draw(ctx, self.player2.paddle.position);
+            self.ball.puck.texture.draw(ctx, self.ball.puck.position);
         }
         Ok(())
     }
