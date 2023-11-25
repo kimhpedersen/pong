@@ -7,7 +7,7 @@ pub struct Entity {
 }
 
 impl Entity {
-    pub fn new(texture: Texture, position: Vec2<f32>) -> Entity {
+    fn new(texture: Texture, position: Vec2<f32>) -> Entity {
         Entity { texture, position}
     }
 
@@ -35,24 +35,24 @@ impl Entity {
     }
 }
 
-struct Player {
-    paddle: Entity,
-    score: i32,
+pub struct Player {
+    pub paddle: Entity,
+    pub score: i32,
 }
 
-struct Ball {
-    puck: Entity,
-    velocity: Vec2<f32>,
+pub struct Ball {
+    pub puck: Entity,
+    pub velocity: Vec2<f32>,
 }
 
 impl Player {
-    fn new(texture: Texture, position: Vec2<f32>) -> Player {
+    pub fn new(texture: Texture, position: Vec2<f32>) -> Player {
         Player { paddle: Entity::new(texture, position), score: 0 as i32}
     }
 }
 
 impl Ball {
-    fn new(texture: Texture, position: Vec2<f32>, velovity: Vec2<f32>) -> Ball {
+    pub fn new(texture: Texture, position: Vec2<f32>, velovity: Vec2<f32>) -> Ball {
         Ball { puck: Entity::new(texture, position), velocity: velovity}
     }
 }
